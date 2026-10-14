@@ -1,0 +1,66 @@
+# AMCL (Adaptive Monte Carlo Localization) for Testbed-T1.0.0.
+#
+# AMCL matches /scan against /map with a particle filter and publishes the
+# map -> odom transform. Frames follow the robot: the diff-drive plugin
+# publishes odom -> base_footprint, the lidar is on lidar_link_1.
+amcl:
+  ros__parameters:
+    use_sim_time: true
+
+    # Frames and topics
+    global_frame_id: map
+    odom_frame_id: odom
+    base_frame_id: base_footprint
+    scan_topic: scan
+    tf_broadcast: true
+    transform_tolerance: 1.0
+
+    # Start where spawn_testbed.launch.py places the robot: (0, 5), yaw 0.
+    set_initial_pose: true
+    initial_pose:
+      x: 0.0
+      y: 5.0
+      z: 0.0
+      yaw: 0.0
+
+    # Motion model: two-wheel differential drive. alpha1-4 are the expected
+    # odometry noise (rotation from rotation, rotation from translation,
+    # translation from translation, translation from rotation). Gazebo
+    # odometry is clean, so these are lower than the 0.2 Nav2 default.
+    robot_model_type: nav2_amcl::DifferentialMotionModel
+    alpha1: 0.1
+    alpha2: 0.1
+    alpha3: 0.1
+    alpha4: 0.1
+    alpha5: 0.1
+
+    # Particle filter
+    min_particles: 500
+    max_particles: 2000
+    pf_err: 0.05
+    pf_z: 0.99
+    resample_interval: 1
+    recovery_alpha_fast: 0.0
+    recovery_alpha_slow: 0.0
+    # Update the filter after 0.2 m or ~11 degrees of motion
+    update_min_d: 0.2
+    update_min_a: 0.2
+    save_pose_rate: 0.5
+
+    # Laser model. The lidar gives 300 beams over 360 degrees up to 12 m
+    # (testbed.gazebo); AMCL uses 60 of them per update.
+    laser_model_type: likelihood_field
+    laser_min_range: 0.1
+    laser_max_range: 12.0
+    max_beams: 60
+    laser_likelihood_max_dist: 2.0
+    sigma_hit: 0.2
+    z_hit: 0.5
+    z_short: 0.05
+    z_max: 0.05
+    z_rand: 0.5
+    lambda_short: 0.1
+    do_beamskip: false
+    beam_skip_distance: 0.5
+    beam_skip_error_threshold: 0.9
+    beam_skip_threshold: 0.3

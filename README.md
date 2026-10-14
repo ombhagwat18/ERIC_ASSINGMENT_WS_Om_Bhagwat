@@ -1,4 +1,11 @@
-# Level 1: ROS2 Navigation Assignment - Your Full Name
+# Level 1: ROS2 Navigation Assignment - Om Bhagwat
+
+> **Submission:** the navigation package, how to run it and the results are in [`testbed_navigation/README.md`](testbed_navigation/README.md). Every starter-code bug and its fix is in [`BUGS_FIXED.md`](BUGS_FIXED.md).
+>
+> ```bash
+> colcon build --symlink-install && source install/setup.bash
+> ros2 launch testbed_navigation testbed_navigation.launch.py
+> ```
 
 ## Overview
 At ERIC Robotics, we’re big believers in building software with modularity. The nav2 stack reflects this perfectly with flexible, plugin-based framework, allowing you to pick and choose which pieces you need and run them independently. In this assignment, you’ll walk through the navigation workflow step by step—manually creating and calling actions—to bring an autonomous robot to life.
@@ -125,6 +132,6 @@ We’ll be looking for:
 We’re excited to see how you approach this task. Good luck, and happy coding! :)
 
 ## Contact Info 
- - Name: Your full name
+ - Name: Om Bhagwat
  - Contact number: Your contact number
- - Email Address: Your email address
+ - Email Address: ombhagwat18@gmail.com

@@ -1,0 +1,7 @@
+goal          result         time   driven  recoveries  final error  worst AMCL error
+( -6.0,  5.0)  SUCCEEDED     31.9s    5.96m           0       0.088m            0.196m
+(  2.0, -3.0)  SUCCEEDED     56.5s   14.37m           0       0.022m            0.179m
+(  7.5, -6.5)  SUCCEEDED     28.5s    7.59m           0       0.157m            0.233m
+( -6.0, -5.0)  SUCCEEDED     60.5s   15.80m           0       0.084m            0.287m
+(  0.0,  5.0)  SUCCEEDED     50.0s   13.71m           0       0.164m            0.213m
+5 of 5 goals reached; 57.4 m driven in total
