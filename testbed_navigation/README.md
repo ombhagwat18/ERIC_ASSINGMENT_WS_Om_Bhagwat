@@ -6,6 +6,21 @@ Autonomous navigation for the Testbed-T1.0.0 robot, built by launching each Nav2
 
 ![Navigation tour](media/navigation_tour.png)
 
+## Screen recordings and screenshots
+
+Both recordings show the same 71-second run, captured at the same time: the robot drives from the enclosed corner through a 0.9 m gap to (−6, −5), then back through the lower doorway to the start at (0, 5). Both goals succeeded with 0 recoveries.
+
+| File | What it shows |
+|---|---|
+| [`media/navigation_rviz.webm`](media/navigation_rviz.webm) | RViz: map, global and local costmaps, AMCL particle cloud, planned path, footprint |
+| [`media/navigation_gazebo.webm`](media/navigation_gazebo.webm) | Gazebo, overhead view of the whole building |
+
+![Gazebo and RViz side by side: the robot leaves the enclosed corner with its planned path (orange) heading for the gap](media/side_by_side_navigating.png)
+
+![The robot in the lower-left room, localized: the AMCL particle cloud is a tight cluster](media/side_by_side_through_gap.png)
+
+Full-window screenshots are also in `media/`: `rviz_navigating.png`, `rviz_through_gap.png`, `rviz_goal_reached.png`, `gazebo_navigating.png`, `gazebo_through_gap.png`.
+
 ## How to run
 
 ```bash

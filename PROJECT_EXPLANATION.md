@@ -4,8 +4,8 @@ A plain-language walkthrough of what was done in this repository and why. The te
 details are in [`testbed_navigation/README.md`](testbed_navigation/README.md), and every
 bug and issue is in [`BUGS_FIXED.md`](BUGS_FIXED.md).
 
-_Last updated: 14 Oct 2026. Phases 1–6 are done; a screen recording, the phone number in
-`README.md` and the pull request are left._
+_Last updated: 14 Oct 2026. All phases are done, including the screen recordings; only
+opening the pull request is left._
 
 ## 1. The goal
 
@@ -75,9 +75,15 @@ frame. So we could measure exactly how far the robot moved compared with what wa
 and exactly how wrong AMCL was. The test tools in `testbed_navigation/scripts/` do this and
 are part of the submission.
 
-## 6. Still open
+## 6. Media
 
-- **One system library needs upgrading** (`sudo apt install --only-upgrade ros-humble-diagnostic-updater`).
-  Without it the lifecycle managers can't start, so the nodes were switched on by hand for testing.
-- **A screen recording of RViz and Gazebo**, plus the phone number in `README.md`.
-- **Commit, push and open the pull request.**
+`testbed_navigation/media/` holds two screen recordings of the same run (RViz and an overhead
+Gazebo view, 71 s each), side-by-side and full-window screenshots, the route plot of the full
+tour, and before/after images of the wall bug.
+
+## 7. Still open
+
+- **Upgrade one system library** (`sudo apt install --only-upgrade ros-humble-diagnostic-updater`)
+  on this machine. The code is verified: with the fixed library loaded for a test run, the
+  one-command launch started every node by itself and the tour passed 5 of 5.
+- **Open the pull request** from the `testbed-navigation` branch to `main`.
