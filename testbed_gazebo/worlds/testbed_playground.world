@@ -90,7 +90,7 @@
       <heading_deg>0</heading_deg>
     </spherical_coordinates>
     <model name='test_room'>
-      <pose>-0.077849 -1.23126 0 0 -0 0</pose>
+      <pose>-0.185701 0.02346 0 0 -0 0</pose>
       <link name='Wall_1'>
         <pose>-10.0852 -7e-06 0 0 -0 -1.5708</pose>
         <visual name='Wall_1_Visual_0'>
