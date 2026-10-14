@@ -16,7 +16,8 @@ def generate_launch_description():
             ]),
     ])
 
-    robot_description = {"robot_description": robot_description_content}
+    robot_description = {"robot_description": robot_description_content,
+                         "use_sim_time": True}
     return LaunchDescription([
         Node(
             package='robot_state_publisher',
