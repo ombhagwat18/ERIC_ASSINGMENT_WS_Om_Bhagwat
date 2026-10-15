@@ -135,7 +135,7 @@ The route covers the left room through the wide doorway, the lower rooms through
 
 ## Challenges
 
-The full log, with root causes and evidence, is in [`BUGS_FIXED.md`](../BUGS_FIXED.md) at the repo root. The ones that shaped this package:
+The full log, with root causes and evidence, is in [`BUGS_FIXED.txt`](../BUGS_FIXED.txt) at the repo root. The ones that shaped this package:
 
 1. **Localization broke on every spin** (bug #12). `base_footprint` sat 6 cm from the wheel-axle midpoint, so turning in place looked to AMCL like moving sideways, which a differential-drive model treats as heavy noise. AMCL error reached 0.51 m after one 360° spin. Moving `base_footprint` to the axle midpoint brought the error down to 2–7 cm.
 2. **The walls moved on Reset World** (bug #13). The world file gave the brick-wall model two different poses; a reset put every wall 1.25 m from where the map has it, and AMCL followed the walls. AMCL itself was working; finding that out took logging error along the path, scoring the scan against the map at both poses, and reading the walls' live pose from Gazebo.

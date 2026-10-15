@@ -1,0 +1,360 @@
+BUGS FOUND AND FIXED - TESTBED-T1.0.0 STARTER CODE
+==================================================
+
+SUMMARY
+-------
+13 bugs were found and fixed in the starter code (Part A). The four with the
+biggest effect:
+  - the build failing (bug 1)
+  - the lidar seeing only 1.5 m (bug 6)
+  - base_footprint sitting off the robot's rotation centre (bug 12)
+  - the brick walls jumping 1.25 m on Gazebo's Reset World (bug 13)
+
+With all fixes, the robot reaches 5 of 5 goals on a 57 m tour with 0
+recoveries (see testbed_navigation/README.md).
+
+Part B lists the 11 issues hit while building the testbed_navigation package,
+and how each one was solved.
+
+Environment: Ubuntu 22.04, ROS 2 Humble, Gazebo Classic 11.10.2
+
+Status words used below:
+  FIXED     - fixed and verified
+  WAITING   - waiting on something outside the project
+  NOT FIXED - deliberately left as is
+
+How bugs were verified:
+  - build check (colcon build)
+  - URDF parse (xacro + check_urdf)
+  - dependency check (rosdep check)
+  - simulation tests (testbed_navigation/scripts/)
+
+In this simulation /odom is the robot's true pose (the diff-drive plugin's
+default world odometry, checked against Gazebo's own model pose), and the map
+frame is the world frame. So commanded vs actual motion, and AMCL's exact
+localization error, can both be measured.
+
+
+PART A - BUGS IN THE STARTER CODE
+=================================
+
+BUG 1 - testbed_description/CMakeLists.txt
+  Problem:     colcon build fails with "CMake Error at CMakeLists.txt:24: Parse
+               error. Expected "(", got newline". testbed_gazebo is then
+               skipped because it depends on testbed_description.
+  Root cause:  The last line was "ament_package" with no parentheses, which is
+               not a valid CMake command call.
+  Fix:         Changed it to "ament_package()".
+  Verified:    Build log log/latest_build/testbed_description/stderr.log.
+               After the fix, all packages build.
+  Status:      FIXED
+
+BUG 2 - testbed_bringup/maps/testbed_world.yaml
+  Problem:     The map server cannot load the map image.
+  Root cause:  "image: wrong_path_testbed_world.pgm" names a file that doesn't
+               exist. The real file is testbed_world.pgm.
+  Fix:         "image: testbed_world.pgm" (relative to the YAML file, so it
+               works from any install location).
+  Verified:    maps/ contains only testbed_world.pgm.
+  Status:      FIXED
+
+BUG 3 - testbed_bringup/CMakeLists.txt
+  Problem:     The map can't be found by package path at runtime
+               (get_package_share_directory('testbed_bringup')/maps/...).
+  Root cause:  The install(DIRECTORY ...) rule installed only launch/, so maps/
+               was never copied to install/.
+  Fix:         Added maps to the install directories.
+  Verified:    After rebuilding, install/testbed_bringup/share/testbed_bringup/
+               maps/ contains the .yaml and .pgm.
+  Status:      FIXED
+
+BUG 4 - testbed_gazebo/CMakeLists.txt
+  Problem:     spawn_playground.launch.py adds share/testbed_gazebo/models to
+               GAZEBO_MODEL_PATH, but that folder doesn't exist after install.
+  Root cause:  models was missing from the install rule.
+  Fix:         Added models to the install directories.
+  Verified:    After rebuilding, install/testbed_gazebo/share/testbed_gazebo/
+               models/ exists.
+  Status:      FIXED
+
+BUG 5 - testbed_description/launch/robot_description.launch.py
+  Problem:     robot_state_publisher stamps TF with wall-clock time while
+               Gazebo, AMCL and Nav2 use simulation time. This causes TF
+               "extrapolation into the future/past" errors and dropped
+               transforms.
+  Root cause:  robot_state_publisher was started without use_sim_time.
+  Fix:         Added "use_sim_time": True to its parameters.
+  Verified:    In the simulation, "tf2_echo odom lidar_link_1" resolves with
+               sim-time stamps (e.g. "At time 188.54") and no extrapolation
+               errors.
+  Status:      FIXED
+
+BUG 6 - testbed_description/urdf/testbed.gazebo (lidar)
+  Problem:     The lidar only sees 1.5 m. In a building about 20 m x 20 m most
+               scans hit nothing, so AMCL has almost no walls to match against
+               the map and localization fails or drifts.
+  Root cause:  <range><max>1.5</max>
+  Fix:         <max>12.0</max> (typical for a 2D indoor lidar, and enough to
+               see the walls of this world).
+  Verified:    Map size: 405 x 400 cells at 0.05 m = about 20 m x 20 m.
+               Simulation test: from the spawn point the nearest wall is
+               3.39 m away, so a 1.5 m lidar would see 0 of 300 rays. With
+               12 m, 298 of 300 rays hit walls (up to 11.4 m away).
+  Status:      FIXED
+
+BUG 7 - testbed_description/urdf/testbed.gazebo (ROS 1 plugin)
+  Problem:     Gazebo tries to load a plugin that doesn't exist in ROS 2 and
+               logs an error when the robot spawns.
+  Root cause:  libgazebo_ros_control.so is the ROS 1 (gazebo_ros_control)
+               plugin; Humble doesn't ship it. Motion already comes from
+               libgazebo_ros_diff_drive.so.
+  Fix:         Removed the <plugin name="control"
+               filename="libgazebo_ros_control.so"/> block.
+  Verified:    The library is not present in /opt/ros/humble/lib.
+  Status:      FIXED
+
+BUG 8 - testbed_description/urdf/testbed.gazebo (IMU)
+  Problem:     Malformed XML: an extra ">" after
+               </initial_orientation_as_reference> leaves stray text inside the
+               plugin element.
+  Root cause:  Typo.
+  Fix:         Removed the extra ">".
+  Verified:    xacro and check_urdf parse the robot cleanly.
+  Status:      FIXED
+
+BUG 9 - package.xml (all three packages)
+  Problem:     The packages don't declare what they need at runtime, so
+               "rosdep install" on a fresh machine won't install gazebo_ros,
+               xacro, robot_state_publisher and others, and the launch files
+               fail.
+  Root cause:  exec_depend entries were missing. testbed_bringup also calls
+               find_package(rclpy) without declaring it.
+  Fix:         Added exec_depend entries:
+                 testbed_description: xacro, robot_state_publisher,
+                                      joint_state_publisher, rviz2
+                 testbed_gazebo:      gazebo_ros, gazebo_plugins
+                 testbed_bringup:     rclpy (depend), testbed_description,
+                                      testbed_gazebo, rviz2
+  Verified:    "rosdep check --from-paths src --ignore-src" reports "All
+               system dependencies have been satisfied".
+  Status:      FIXED
+
+BUG 10 - .vscode/settings.json
+  Problem:     The editor's CMake extension points to a folder on another
+               machine.
+  Root cause:  Hard-coded cmake.sourceDirectory:
+               /home/eric-ros1/level01_ros_assignment/testbed_bringup
+  Fix:         Removed the machine-specific path.
+  Verified:    Code review (doesn't affect the robot).
+  Status:      FIXED
+
+BUG 11 - testbed_description/urdf/testbed.gazebo (wheel_separation)
+  Problem:     The robot turns less than commanded: a commanded 86 degree turn
+               (0.5 rad/s for 3 s) gives only 78 degrees.
+  Root cause:  The plugin uses wheel_separation = 0.35. Measured from the wheel
+               meshes, the wheel centres are at y = +0.150 m and y = -0.226 m,
+               which is 0.376 m apart.
+  Fix:         wheel_separation = 0.376. (wheel_diameter = 0.1 was checked and
+               is correct.)
+  Verified:    Mesh bounding boxes computed from the STL files. Drive test
+               after the fix: the same command gives 84 of 86 degrees; the
+               small remainder is the wheels speeding up and slowing down.
+  Status:      FIXED
+
+BUG 12 - testbed_description/urdf/testbed.xacro (fixed_base_joint)
+  Problem:     AMCL loses accuracy every time the robot spins in place: the
+               localization error rises to 0.51 m after a 360 degree spin and
+               the particle cloud spreads to about 1 m. A pure spin also moves
+               base_footprint 8 cm sideways.
+  Root cause:  base_footprint was placed at the base_link mesh origin, about
+               6 cm from the wheel-axle midpoint (the robot's real rotation
+               centre). Spinning in place therefore looks like sideways
+               motion, which a differential-drive motion model treats as very
+               noisy. Measured from the axle midpoint, the robot's body is
+               symmetric (+/-0.175 m x +/-0.203 m), so that is clearly where
+               the base frame belongs.
+  Fix:         Moved base_footprint to the axle midpoint: fixed_base_joint
+               origin "0 0 0" changed to "0.0505 0.0378 0".
+  Verified:    Drive test: an in-place turn now moves base_footprint 0.00 m
+               (was 0.08 m). AMCL test over the same 9-step route: error
+               1.6-6.8 cm (was 10-51 cm); particle spread shrinks to 0.19 m.
+  Status:      FIXED
+
+BUG 13 - testbed_gazebo/worlds/testbed_playground.world (test_room model)
+  Problem:     After Gazebo's Reset World (GUI menu or /reset_world), every
+               brick wall sits 1.25 m away from where the map shows it. AMCL
+               then locks onto the wrong position: one navigation run ended
+               1.23 m from its goal while reporting success, and the next goal
+               timed out after 18 recoveries.
+  Root cause:  The world file gives test_room two different poses: the model
+               definition says (-0.078, -1.231), the saved <state> block says
+               (-0.186, 0.023). A fresh launch restores <state>, which matches
+               the map; a reset returns models to their definition pose. The
+               other 6 models have identical poses in both places.
+  Fix:         Set the test_room definition pose to the <state> pose:
+               "-0.185701 0.02346 0 0 -0 0".
+  Verified:    Live pose from "gz model -m test_room -i": before the fix,
+               (-0.1857, 0.0235) on a fresh launch but (-0.0778, -1.2313)
+               after a reset; after the fix, (-0.1857, 0.0235) both times.
+               Scan-to-map check at the robot's true pose: 26% of lidar hits
+               fell on a map wall, versus 96% at a pose shifted by the same
+               1.25 m. Every wall's definition and state positions now agree
+               to 0.00 mm.
+  Status:      FIXED
+
+
+CHECKED AND FOUND OK (NOT BUGS)
+-------------------------------
+  - Wheel/caster friction (all mu = 0.2) looked suspicious, because the four
+    casters are fixed links that slide rather than roll. The drive test showed
+    no slip, though: 0.2 m/s for 5 s moved the robot exactly 1.00 m forwards
+    and 1.00 m backwards. Left unchanged.
+  - wheel_diameter = 0.1: the wheel mesh spans z = 0.0 to 0.1 m.
+  - The lidar sits above the body (lidar z = 0.228 m, top of body = 0.2225 m),
+    so it doesn't see the robot itself.
+  - The map frame matches the Gazebo world frame: the map covers x -10.2 to
+    10.05 m and y -9.94 to 10.06 m. The robot spawns at (0, 5, yaw 0), which
+    becomes AMCL's initial pose.
+  - testbed.trans uses ROS 1 transmissions. It isn't used in ROS 2 but does no
+    harm, so it was left unchanged.
+
+
+PART B - ISSUES HIT WHILE BUILDING TESTBED_NAVIGATION
+=====================================================
+Newest first.
+
+B11 - Final checks
+  Problem:     colcon test on the starter packages: 19 of 25 lint checks fail
+               in testbed_bringup, 18 of 25 in testbed_gazebo.
+  Root cause:  Style findings in the original launch files (unused imports,
+               docstring style and similar). They don't change behaviour.
+  Solution:    Left as is, outside the assignment's scope. testbed_navigation
+               passes all 15 of its lint checks (flake8, pep257, xmllint,
+               lint_cmake).
+  Status:      NOT FIXED (style only)
+
+B10 - Navigation
+  Problem:     Started from the one-command launch file, controller_server
+               refused to configure, and the local costmap loaded a
+               static_layer with no scan topic.
+  Root cause:  ROS 2 launch arguments aren't scoped per included file.
+               localization.launch.py declared params_file (the AMCL file)
+               first, so navigation.launch.py's own default was ignored and
+               every navigation server got the AMCL file, falling back to
+               Nav2's built-in defaults.
+  Solution:    Wrapped each include in the top-level launch file in a scoped
+               GroupAction. Verified with "ros2 param get" (local costmap
+               plugins, controller plugin, robot_base_frame) and a 2-goal run.
+  Status:      FIXED
+
+B9 - Navigation
+  Problem:     One goal needed 8 recoveries; the planner logged "Failed to
+               create a plan from potential when a legal potential was found.
+               This shouldn't happen." 7 times.
+  Root cause:  NavFn was set to A* (use_astar: true). A* leaves NavFn's
+               potential field incomplete, and on long routes around walls
+               the path extraction can dead-end.
+  Solution:    use_astar: false (Dijkstra). On the same 5-goal tour,
+               recoveries went from 10 to 0 and planner failures from 8 to 0.
+  Status:      FIXED
+
+B8 - Navigation (testing)
+  Problem:     The test script cancelled its first goal instantly and
+               reported "TIMED OUT 852.9 s".
+  Root cause:  The script read the clock before the first /clock message
+               arrived, so sim time was 0; when the clock jumped to about
+               850 s, the goal looked 240 s overdue.
+  Solution:    The script now waits until sim time is non-zero before sending
+               goals.
+  Status:      FIXED
+
+B7 - Navigation (testing)
+  Problem:     During the first navigation tour, AMCL drifted up to 1.37 m on
+               a straight 6 m run, though the map matched the world well in
+               the upper room.
+  Root cause:  Not an AMCL problem: earlier tests had called /reset_world,
+               which moved the walls 1.25 m (bug 13). Found by:
+                 1. logging AMCL's error along the path;
+                 2. scoring the scan against the map at both the true pose and
+                    AMCL's pose (AMCL's pose fit the map at 96%, the true pose
+                    only 26%);
+                 3. checking /odom against Gazebo's own model pose (identical);
+                 4. reading the walls' live pose from Gazebo before and after a
+                    reset.
+  Solution:    Fixed the world file (bug 13).
+  Status:      FIXED
+
+B6 - Localization (testing)
+  Problem:     The first AMCL accuracy test reported 13-38 cm error that
+               didn't settle.
+  Root cause:  /amcl_pose is only published when the filter updates (every
+               0.2 m or 0.2 rad of motion), so the test compared a stale
+               estimate with the robot's current position.
+  Solution:    Measure the error from the map -> odom transform instead.
+               /odom is ground truth here, so map -> odom is exactly the
+               localization error, and it is always current. The real
+               remaining error came from bug 12.
+  Status:      FIXED
+
+B5 - Localization (testing)
+  Problem:     A test run showed a 6-8 m localization error and AMCL never
+               recovered.
+  Root cause:  The previous test had moved the robot, but AMCL started from
+               the fixed spawn pose (0, 5, 0 degrees). AMCL tracks from an
+               initial guess; it doesn't search the whole map.
+  Solution:    Reset the robot with Gazebo's /reset_world and send AMCL a
+               matching /initialpose (the same as RViz's "2D Pose Estimate")
+               before each test.
+  Status:      FIXED
+
+B4 - Map loading
+  Problem:     New launch files were "not found" after colcon build
+               --symlink-install. Separately, the build failed with "source
+               directory /home/omm/assignment_ws/testbed_navigation does not
+               exist".
+  Root cause:  --symlink-install only links files that existed at the last
+               build, so new files need a rebuild. The build cache in
+               build/testbed_navigation still pointed at the package's old
+               location (see B1).
+  Solution:    Rebuild after adding files. Deleted the stale build/ and
+               install/ folders for testbed_navigation (both are generated).
+  Status:      FIXED
+
+B3 - Map loading
+  Problem:     lifecycle_manager dies at start with exit code 127:
+               "libdiagnostic_updater.so: cannot open shared object file".
+               Without it no Nav2 node leaves the unconfigured state. RViz's
+               AMCL particle display (nav2_rviz_plugins) fails to load for the
+               same reason.
+  Root cause:  System package version mismatch: Nav2 1.1.20 was built against
+               ros-humble-diagnostic-updater 4.0.7, which provides
+               libdiagnostic_updater.so; this machine has 4.0.6, which
+               doesn't. Not a problem in the project code.
+  Solution:    sudo apt update && sudo apt install --only-upgrade
+               ros-humble-diagnostic-updater
+               Until then each node was configured and activated by hand
+               ("ros2 lifecycle set <node> configure", then "activate").
+               Diagnosis confirmed: with the 4.0.7 library unpacked locally
+               and put on LD_LIBRARY_PATH for one test run only, all three
+               lifecycle managers activated every node automatically and the
+               5-goal tour succeeded again (5 of 5, 0 recoveries).
+  Status:      WAITING (system upgrade on this machine)
+
+B2 - Setup
+  Problem:     Editing testbed.gazebo with a script turned a 7-line change
+               into a 316-line diff.
+  Root cause:  The file uses Windows (CRLF) line endings and the script
+               rewrote them as LF.
+  Solution:    Restored the CRLF endings, so the diff shows only the real
+               changes. Check files with "git ls-files --eol" before editing.
+  Status:      FIXED
+
+B1 - Setup
+  Problem:     colcon build built a testbed_navigation package that wasn't in
+               the git repo.
+  Root cause:  The package was created with "ros2 pkg create" from
+               ~/assignment_ws (the workspace root) instead of inside the
+               repo, so it would never have been part of the pull request.
+  Solution:    Moved it into the repo:
+               src/ERIC_ASSINGMENT_WS_Om_Bhagwat/testbed_navigation/
+  Status:      FIXED

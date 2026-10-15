@@ -1,6 +1,6 @@
 # Level 1: ROS2 Navigation Assignment - Om Bhagwat
 
-> **Submission:** the navigation package, how to run it and the results are in [`testbed_navigation/README.md`](testbed_navigation/README.md). Every starter-code bug and its fix is in [`BUGS_FIXED.md`](BUGS_FIXED.md).
+> **Submission:** the navigation package, how to run it and the results are in [`testbed_navigation/README.md`](testbed_navigation/README.md). Every starter-code bug and its fix is in [`BUGS_FIXED.txt`](BUGS_FIXED.txt).
 >
 > ```bash
 > colcon build --symlink-install && source install/setup.bash
