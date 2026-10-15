@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Testbed-T1.0.0 Navigation Report</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column under a sticky section bar; bugs are filterable expandable records, results sit beside their media. */
+:root{
+  --bg:#f4f6f7; --surface:#ffffff; --fg:#14202a; --muted:#56656f; --line:#d6dee3;
+  --accent:#0e7f8c; --accent-soft:#dff1f3;          /* costmap cyan */
+  --hot:#c2413b; --hot-soft:#fbe4e2;                /* lidar red */
+  --warn:#a0640a; --warn-soft:#fbefd8;
+  --ok:#25804c; --ok-soft:#ddf1e5;
+  --idle:#56656f; --idle-soft:#e8edf0;
+  --code-bg:#eaeff2;
+  --f-display:"Saira Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f161b; --surface:#16212a; --fg:#e2eaee; --muted:#93a4ae; --line:#28363f;
+  --accent:#4fc3cf; --accent-soft:#12323a; --hot:#f07a73; --hot-soft:#3b1d1c;
+  --warn:#e3ad4f; --warn-soft:#352812; --ok:#62cc8d; --ok-soft:#16301f;
+  --idle:#93a4ae; --idle-soft:#202c34; --code-bg:#0b1115; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0f161b; --surface:#16212a; --fg:#e2eaee; --muted:#93a4ae; --line:#28363f;
+  --accent:#4fc3cf; --accent-soft:#12323a; --hot:#f07a73; --hot-soft:#3b1d1c;
+  --warn:#e3ad4f; --warn-soft:#352812; --ok:#62cc8d; --ok-soft:#16301f;
+  --idle:#93a4ae; --idle-soft:#202c34; --code-bg:#0b1115; color-scheme:dark;}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.55}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 72px;display:flex;flex-direction:column;gap:56px}
+h1,h2,h3{font-family:var(--f-display);margin:0;line-height:1.12;text-wrap:balance}
+h1{font-size:clamp(32px,5.2vw,48px);font-weight:700;letter-spacing:-.01em}
+h2{font-size:30px;font-weight:700}
+h3{font-size:20px;font-weight:600}
+p{margin:0;max-width:68ch}
+a{color:var(--accent)}
+code,.mono{font-family:var(--f-mono);font-size:.84em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:4px;overflow-wrap:anywhere}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+section{display:flex;flex-direction:column;gap:20px;scroll-margin-top:72px}
+.lead{font-size:18px;color:var(--fg)}
+.sub{color:var(--muted)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* sticky section bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.bar nav{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+.bar a{font-family:var(--f-display);font-weight:600;font-size:15px;color:var(--muted);text-decoration:none;padding:12px 10px;border-bottom:3px solid transparent;white-space:nowrap}
+.bar a:hover,.bar a.on{color:var(--fg);border-bottom-color:var(--accent)}
+
+/* hero */
+header.hero{display:flex;flex-direction:column;gap:18px;padding-top:36px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.meta b{color:var(--fg);font-weight:500}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:720px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.stat .v{font-family:var(--f-display);font-size:34px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat .l{font-size:14px;color:var(--muted)}
+.stat.good .v{color:var(--ok)}
+
+/* pills */
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:11.5px;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.p-block{color:var(--hot);background:var(--hot-soft)}
+.p-nav{color:var(--warn);background:var(--warn-soft)}
+.p-clean{color:var(--idle);background:var(--idle-soft)}
+.p-ok{color:var(--ok);background:var(--ok-soft)}
+
+/* bug controls */
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:14px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:5px 12px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip .n{font-family:var(--f-mono);font-size:12px;opacity:.7;margin-left:4px}
+.search{flex:1 1 220px;min-width:0;display:flex}
+.search input{width:100%;font:inherit;font-size:15px;padding:7px 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--fg)}
+.toggle-all{font:inherit;font-size:14px;background:none;border:1px solid var(--line);color:var(--muted);border-radius:6px;padding:6px 12px;cursor:pointer}
+.count{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+
+/* bug records */
+.bugs{display:flex;flex-direction:column;gap:10px}
+details.bug{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:6px}
+details.bug[data-impact="block"]{border-left-color:var(--hot)}
+details.bug[data-impact="nav"]{border-left-color:var(--warn)}
+details.bug summary{list-style:none;cursor:pointer;padding:14px 16px;display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:4px 14px;align-items:start}
+details.bug summary::-webkit-details-marker{display:none}
+.bnum{font-family:var(--f-display);font-size:24px;font-weight:700;color:var(--muted);line-height:1.1;font-variant-numeric:tabular-nums}
+.btitle{display:flex;flex-direction:column;gap:3px;min-width:0}
+.btitle strong{font-family:var(--f-display);font-size:19px;font-weight:600;line-height:1.2}
+.btitle .file{font-family:var(--f-mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.bside{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.caret{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+details[open] .caret .o{display:none}
+details:not([open]) .caret .c{display:none}
+@media (max-width:600px){details.bug summary{grid-template-columns:36px minmax(0,1fr)}.bside{grid-column:2;flex-direction:row;align-items:center}}
+.bbody{padding:0 16px 16px 74px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
+@media (max-width:600px){.bbody{padding:0 16px 16px;grid-template-columns:minmax(0,1fr)}}
+.field{display:flex;flex-direction:column;gap:3px;min-width:0}
+.field .k{font-family:var(--f-mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field p{font-size:15px}
+.field.wide{grid-column:1/-1}
+.metric{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;background:var(--bg);border-radius:6px;padding:12px 14px}
+.metric .mt{font-size:14px;font-weight:600}
+.mrow{display:grid;grid-template-columns:64px minmax(0,1fr) 92px;gap:10px;align-items:center;font-size:13.5px}
+.mrow .lbl{color:var(--muted);font-family:var(--f-mono);font-size:12px}
+.mrow .val{font-family:var(--f-mono);font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums}
+.track{height:10px;background:var(--idle-soft);border-radius:5px;overflow:hidden}
+.fill{height:100%;border-radius:5px}
+.fill.before{background:var(--hot)}
+.fill.after{background:var(--ok)}
+.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:6px}
+
+/* checked-not-bug */
+.okgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:720px){.okgrid{grid-template-columns:minmax(0,1fr)}}
+.okitem{border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;background:var(--surface)}
+.okitem strong{font-family:var(--f-display);font-weight:600;font-size:17px}
+.okitem p{font-size:15px;color:var(--muted)}
+
+/* dev log */
+.log{display:flex;flex-direction:column;border-left:2px solid var(--line);margin-left:6px}
+.logitem{position:relative;padding:0 0 18px 22px;display:flex;flex-direction:column;gap:4px}
+.logitem::before{content:"";position:absolute;left:-7px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+.logitem.wait::before{border-color:var(--warn)}
+.loghead{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+.loghead strong{font-family:var(--f-display);font-weight:600;font-size:17px}
+.loghead .id{font-family:var(--f-mono);font-size:12.5px;color:var(--muted)}
+.logitem p{font-size:15px}
+.logitem .how{color:var(--muted)}
+
+/* system */
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px;overflow-x:auto}
+.diagram svg{display:block;width:100%;min-width:640px;height:auto}
+.tf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 4px;font-family:var(--f-mono);font-size:13px}
+.tf .fr{padding:6px 10px;border:1px solid var(--line);background:var(--surface);border-radius:4px}
+.tf .fr.key{border-color:var(--accent);color:var(--accent)}
+.tf .ar{display:flex;flex-direction:column;align-items:center;color:var(--muted);font-size:10.5px;line-height:1.2;padding:0 3px}
+.tf .ar span:last-child{font-size:14px;color:var(--fg)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-mono);font-size:11.5px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--bg)}
+tr:last-child td{border-bottom:0}
+td.num{font-family:var(--f-mono);font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* results */
+.media2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:720px){.media2{grid-template-columns:minmax(0,1fr)}}
+figure{margin:0;display:flex;flex-direction:column;gap:8px;min-width:0}
+figure img,figure video{width:100%;max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+figcaption{font-size:14px;color:var(--muted)}
+.code{position:relative;background:var(--code-bg);border-radius:6px;padding:14px 16px;font-family:var(--f-mono);font-size:13.5px;line-height:1.6;overflow-x:auto;white-space:pre}
+.copy{position:absolute;top:8px;right:8px;font:inherit;font-family:var(--f-mono);font-size:12px;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:4px;padding:3px 9px;cursor:pointer}
+.note{border:1px solid var(--warn);background:var(--warn-soft);border-radius:6px;padding:12px 16px;display:flex;flex-direction:column;gap:4px}
+.note strong{font-family:var(--f-display);font-weight:600;font-size:17px}
+.note p{font-size:15px}
+footer{border-top:1px solid var(--line);padding-top:20px;display:flex;flex-wrap:wrap;gap:8px 28px;font-size:14px;color:var(--muted)}
+footer b{color:var(--fg);font-weight:600}
+</style>
+</head>
+<body>
+
+<div class="bar"><nav aria-label="Sections">
+  <a href="#overview">Overview</a><a href="#bugs">Bugs fixed</a><a href="#devlog">Development log</a><a href="#system">How it works</a><a href="#results">Results</a><a href="#run">Run it</a>
+</nav></div>
+
+<div class="wrap">
+
+<header class="hero" id="overview">
+  <span class="eyebrow">ERIC Robotics · Level 1 ROS 2 Navigation Assignment</span>
+  <h1>Testbed-T1.0.0 Navigation Report</h1>
+  <p class="lead">The Testbed-T1.0.0 robot now drives itself around the simulated building. Every Nav2 server is launched by hand from the new <code>testbed_navigation</code> package, without <code>nav2_bringup</code>, after 13 deliberate bugs in the starter code were found and fixed.</p>
+  <div class="meta">
+    <span>Author <b>Om Bhagwat</b></span>
+    <span>Stack <b>ROS 2 Humble · Nav2 1.1.20 · Gazebo 11.10.2</b></span>
+    <span>Branch <b>testbed-navigation</b></span>
+    <span>Pull request <b><a href="https://github.com/ERICR-recruiter/level01_ros_assignment/pull/65">#65</a></b></span>
+  </div>
+  <div class="stats">
+    <div class="stat good"><span class="v">5 / 5</span><span class="l">goals reached on the tour</span></div>
+    <div class="stat"><span class="v">57.4 m</span><span class="l">driven, 0 recoveries</span></div>
+    <div class="stat"><span class="v">≤ 16.4 cm</span><span class="l">from each goal on arrival</span></div>
+    <div class="stat"><span class="v">13</span><span class="l">starter-code bugs fixed</span></div>
+  </div>
+</header>
+
+<section id="bugs" aria-labelledby="bugs-h">
+  <h2 id="bugs-h">Bugs fixed in the starter code</h2>
+  <p class="sub">Click a bug to see its root cause and how the fix was verified. The colour on the left edge shows its impact: red stopped the project from running, amber would have broken localization or navigation, grey was cleanup.</p>
+  <div class="controls">
+    <div class="chips" role="group" aria-label="Filter by area" id="cat-chips"></div>
+    <label class="search" for="bug-search"><input id="bug-search" type="search" placeholder="Search bugs, files, fixes…" aria-label="Search bugs"></label>
+    <button class="toggle-all" type="button" id="toggle-all">Expand all</button>
+  </div>
+  <div class="chips" role="group" aria-label="Filter by impact" id="impact-chips"></div>
+  <span class="count" id="bug-count" aria-live="polite"></span>
+  <div class="bugs" id="bug-list"></div>
+
+  <h3>Checked and found OK</h3>
+  <div class="okgrid">
+    <div class="okitem"><strong>Wheel and caster friction</strong><p>All surfaces use μ = 0.2 and the casters slide rather than roll, which looked like it would cause slip. The drive test showed none: 1.00 m commanded, 1.00 m driven, forwards and backwards.</p></div>
+    <div class="okitem"><strong>Wheel diameter 0.1 m</strong><p>The wheel mesh spans z = 0.0 to 0.1 m, matching the plugin.</p></div>
+    <div class="okitem"><strong>Lidar mounting height</strong><p>The lidar sits at z = 0.228 m, above the body top at 0.2225 m, so it never sees the robot itself.</p></div>
+    <div class="okitem"><strong>ROS 1 transmissions</strong><p><code>testbed.trans</code> is unused in ROS 2 but harmless, so it was left in place.</p></div>
+  </div>
+</section>
+
+<section id="devlog" aria-labelledby="devlog-h">
+  <h2 id="devlog-h">Development log</h2>
+  <p class="sub">Problems hit while building <code>testbed_navigation</code>, newest first, with how each was solved.</p>
+  <div class="log" id="dev-log"></div>
+</section>
+
+<section id="system" aria-labelledby="system-h">
+  <h2 id="system-h">How it works</h2>
+  <p>A goal clicked in RViz goes to <code>bt_navigator</code>, which runs Nav2's behaviour tree: it asks the planner for a path, has the controller follow it, replans once a second, and calls recovery behaviours if the robot gets stuck. AMCL keeps the robot located on the map by matching lidar scans to it.</p>
+  <div class="diagram" role="img" aria-label="Architecture: RViz sends a goal to bt_navigator, which calls planner_server, controller_server and behavior_server; commands pass through velocity_smoother to Gazebo; Gazebo's lidar feeds AMCL, which also reads the map from map_server">
+    <svg viewBox="0 0 900 430" xmlns="http://www.w3.org/2000/svg" font-family="Source Sans 3, system-ui, sans-serif">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" style="fill:var(--muted)"/></marker></defs>
+      <g fill="none" style="stroke:var(--muted)" stroke-width="1.3">
+        <path d="M230 70H320" marker-end="url(#ar)"/>
+        <path d="M540 70H630" marker-end="url(#ar)"/>
+        <path d="M430 98V162" marker-end="url(#ar)"/>
+        <path d="M500 98V130H740V162" marker-end="url(#ar)"/>
+        <path d="M230 190H320" marker-end="url(#ar)"/>
+        <path d="M120 218V272" marker-end="url(#ar)"/>
+        <path d="M740 218V272" marker-end="url(#ar)"/>
+        <path d="M740 328V362" marker-end="url(#ar)"/>
+        <path d="M120 362V328" marker-end="url(#ar)"/>
+        <path d="M230 300H430V218" marker-end="url(#ar)"/>
+      </g>
+      <g style="fill:var(--surface);stroke:var(--line)" stroke-width="1.3">
+        <rect x="10" y="42" width="220" height="56" rx="8"/>
+        <rect x="320" y="42" width="220" height="56" rx="8" style="fill:var(--accent-soft);stroke:var(--accent)" stroke-width="2"/>
+        <rect x="630" y="42" width="220" height="56" rx="8"/>
+        <rect x="10" y="162" width="220" height="56" rx="8"/>
+        <rect x="320" y="162" width="220" height="56" rx="8"/>
+        <rect x="630" y="162" width="220" height="56" rx="8"/>
+        <rect x="10" y="272" width="220" height="56" rx="8"/>
+        <rect x="630" y="272" width="220" height="56" rx="8"/>
+        <rect x="10" y="362" width="840" height="56" rx="8" style="fill:var(--idle-soft)"/>
+      </g>
+      <g font-size="15" font-weight="600" text-anchor="middle" style="fill:var(--fg)">
+        <text x="120" y="66">RViz</text><text x="430" y="66">bt_navigator</text><text x="740" y="66">behavior_server</text>
+        <text x="120" y="186">map_server</text><text x="430" y="186">planner_server</text><text x="740" y="186">controller_server</text>
+        <text x="120" y="296">amcl</text><text x="740" y="296">velocity_smoother</text>
+        <text x="430" y="386">Gazebo simulation</text>
+      </g>
+      <g font-size="13" text-anchor="middle" style="fill:var(--muted)">
+        <text x="120" y="86">Nav2 Goal button</text><text x="430" y="86">behaviour tree: plan, follow, recover</text><text x="740" y="86">spin, back up, wait</text>
+        <text x="120" y="206">loads testbed_world.yaml</text><text x="430" y="206">NavFn (Dijkstra), global costmap</text><text x="740" y="206">Pure Pursuit, local costmap</text>
+        <text x="120" y="316">matches /scan to /map</text><text x="740" y="316">caps 0.3 m/s, 1.0 rad/s</text>
+        <text x="430" y="406">lidar publishes /scan · diff drive takes /cmd_vel and publishes /odom</text>
+      </g>
+      <g font-size="12.5" style="fill:var(--muted)" font-family="JetBrains Mono, monospace">
+        <text x="275" y="62" text-anchor="middle">/goal_pose</text>
+        <text x="585" y="62" text-anchor="middle">recoveries</text>
+        <text x="422" y="135" text-anchor="end">ComputePathToPose</text>
+        <text x="620" y="124" text-anchor="middle">FollowPath</text>
+        <text x="275" y="182" text-anchor="middle">/map</text>
+        <text x="128" y="250">/map</text>
+        <text x="748" y="250">/cmd_vel_nav</text>
+        <text x="748" y="350">/cmd_vel</text>
+        <text x="128" y="350">/scan, TF odom</text>
+        <text x="330" y="293" text-anchor="middle">TF map→odom</text>
+      </g>
+    </svg>
+  </div>
+  <h3>Coordinate frames</h3>
+  <div class="tf" role="img" aria-label="TF chain: map to odom from AMCL, odom to base_footprint from the diff drive, base_footprint to base_link to lidar_link_1 from robot_state_publisher">
+    <span class="fr">map</span><span class="ar"><span>amcl</span><span>→</span></span>
+    <span class="fr">odom</span><span class="ar"><span>diff drive</span><span>→</span></span>
+    <span class="fr key">base_footprint</span><span class="ar"><span>URDF</span><span>→</span></span>
+    <span class="fr">base_link</span><span class="ar"><span>URDF</span><span>→</span></span>
+    <span class="fr">lidar_link_1</span>
+  </div>
+  <p class="sub"><code>base_footprint</code> now sits at the wheel-axle midpoint (bug 12), so every Nav2 server and AMCL track the robot's true rotation centre.</p>
+  <h3>Plugins chosen</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Server</th><th>Plugin</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td><code>map_server</code></td><td>nav2_map_server</td><td>Serves the provided 405 × 400 map at 0.05 m per cell</td></tr>
+      <tr><td><code>amcl</code></td><td>DifferentialMotionModel, likelihood field</td><td>Two-wheel robot; fast, robust scan matching against the map</td></tr>
+      <tr><td><code>planner_server</code></td><td>NavFn, Dijkstra</td><td>Reliable on a static map. A* mode failed on long routes and was dropped</td></tr>
+      <tr><td><code>controller_server</code></td><td>Regulated Pure Pursuit</td><td>Smooth for a differential drive, few parameters; slows near walls and the goal</td></tr>
+      <tr><td><code>bt_navigator</code></td><td>Default replanning + recovery tree</td><td>Replans at 1 Hz; clears costmaps, spins, waits or backs up on failure</td></tr>
+      <tr><td><code>behavior_server</code></td><td>Spin, BackUp, Wait</td><td>Exactly the recoveries the default tree calls</td></tr>
+      <tr><td><code>velocity_smoother</code></td><td>nav2_velocity_smoother</td><td>Limits speed and acceleration before commands reach the wheels</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="results" aria-labelledby="results-h">
+  <h2 id="results-h">Results</h2>
+  <p>On a five-goal tour through every part of the building, including the 0.9 m gaps and the enclosed corner, the robot reached all five goals with no recoveries. The tour was repeated with the lifecycle managers starting every node on their own, with the same result.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Goal (x, y)</th><th>Result</th><th>Time</th><th>Driven</th><th>Recoveries</th><th>Final error</th><th>Worst AMCL error</th></tr></thead>
+    <tbody>
+      <tr><td class="num">(−6.0, 5.0)</td><td><span class="pill p-ok">Reached</span></td><td class="num">31.9 s</td><td class="num">5.96 m</td><td class="num">0</td><td class="num">0.088 m</td><td class="num">0.196 m</td></tr>
+      <tr><td class="num">(2.0, −3.0)</td><td><span class="pill p-ok">Reached</span></td><td class="num">56.5 s</td><td class="num">14.37 m</td><td class="num">0</td><td class="num">0.022 m</td><td class="num">0.179 m</td></tr>
+      <tr><td class="num">(7.5, −6.5)</td><td><span class="pill p-ok">Reached</span></td><td class="num">28.5 s</td><td class="num">7.59 m</td><td class="num">0</td><td class="num">0.157 m</td><td class="num">0.233 m</td></tr>
+      <tr><td class="num">(−6.0, −5.0)</td><td><span class="pill p-ok">Reached</span></td><td class="num">60.5 s</td><td class="num">15.80 m</td><td class="num">0</td><td class="num">0.084 m</td><td class="num">0.287 m</td></tr>
+      <tr><td class="num">(0.0, 5.0)</td><td><span class="pill p-ok">Reached</span></td><td class="num">50.0 s</td><td class="num">13.71 m</td><td class="num">0</td><td class="num">0.164 m</td><td class="num">0.213 m</td></tr>
+    </tbody>
+  </table></div>
+  <p class="sub">Final error includes the 0.15 m goal tolerance. Localization error is exact here: <code>/odom</code> is the true pose in this simulation and the map frame equals the world frame, so AMCL's <code>map → odom</code> transform is its error.</p>
+  <figure>
+    <img src="testbed_navigation/media/navigation_tour.png" alt="The tour route drawn on the map, coloured by localization error, with the five goals numbered" loading="lazy">
+    <figcaption>The full tour on the map. Colour shows AMCL's error at each point; it stays under 30 cm throughout.</figcaption>
+  </figure>
+  <h3>Screen recordings</h3>
+  <p class="sub">The same 71-second run from both windows: the robot leaves the enclosed corner, passes a 0.9 m gap to (−6, −5) and returns to the start. 2 of 2 goals, 0 recoveries.</p>
+  <div class="media2">
+    <figure><video controls preload="metadata" muted playsinline src="testbed_navigation/media/navigation_rviz.webm"></video><figcaption>RViz: map, costmaps, AMCL particles, planned path, footprint</figcaption></figure>
+    <figure><video controls preload="metadata" muted playsinline src="testbed_navigation/media/navigation_gazebo.webm"></video><figcaption>Gazebo: overhead view of the whole building</figcaption></figure>
+  </div>
+  <figure>
+    <img src="testbed_navigation/media/side_by_side_navigating.png" alt="Gazebo overhead view and RViz map side by side, with the robot leaving the enclosed corner and its planned path heading for the gap" loading="lazy">
+    <figcaption>Gazebo and RViz at the same moment: the planned path (orange) leads from the corner toward the gap.</figcaption>
+  </figure>
+  <div class="media2">
+    <figure><img src="testbed_navigation/media/bug13_walls_after_reset_world.png" alt="Original world after Reset World: walls drawn 1.25 m off the map" loading="lazy"><figcaption>Bug 13, before: after Reset World the brick walls (red) sit 1.25 m off the map.</figcaption></figure>
+    <figure><img src="testbed_navigation/media/bug13_walls_after_fix.png" alt="Fixed world after Reset World: walls on the map" loading="lazy"><figcaption>Bug 13, after: the walls stay on the map after a reset.</figcaption></figure>
+  </div>
+</section>
+
+<section id="run" aria-labelledby="run-h">
+  <h2 id="run-h">Run it</h2>
+  <div class="code" id="run-cmd">cd ~/assignment_ws
+colcon build --symlink-install
+source install/setup.bash
+ros2 launch testbed_navigation testbed_navigation.launch.py<button class="copy" type="button" data-copy="run-cmd">Copy</button></div>
+  <p>Then click <b>Nav2 Goal</b> in RViz and a point on the map. Each layer can also be started on its own: <code>map_loader.launch.py</code>, <code>localization.launch.py</code>, <code>navigation.launch.py</code>.</p>
+  <div class="note"><strong>Requirement: diagnostic_updater 4.0.7 or newer</strong><p>Nav2 1.1.20's lifecycle manager needs <code>libdiagnostic_updater.so</code>, which <code>ros-humble-diagnostic-updater</code> 4.0.6 lacks. If the lifecycle managers exit with code 127, run <code>sudo apt install --only-upgrade ros-humble-diagnostic-updater</code>.</p></div>
+  <h3>Test tools</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Command</th><th>What it measures</th></tr></thead>
+    <tbody>
+      <tr><td><code>ros2 run testbed_navigation drive_test.py</code></td><td>Commanded vs actual motion: slip, turning rate, rotation centre</td></tr>
+      <tr><td><code>ros2 run testbed_navigation localization_test.py</code></td><td>AMCL error after each step of a route of spins and straights</td></tr>
+      <tr><td><code>ros2 run testbed_navigation navigation_test.py</code></td><td>Sends goals; reports result, time, distance, recoveries and errors</td></tr>
+      <tr><td><code>ros2 run testbed_navigation plot_route.py</code></td><td>Draws a recorded route on the map, coloured by localization error</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <span><b>Om Bhagwat</b></span>
+  <span>Phone <span class="mono">9421600826</span></span>
+  <span>Email <span class="mono">ombhagwat18@gmail.com</span></span>
+  <span>Plain-text versions: <code>BUGS_FIXED.txt</code>, <code>PROJECT_EXPLANATION.txt</code></span>
+</footer>
+</div>
+
+<script>
+(function(){
+  const CATS={build:'Build & install',map:'Map & world',robot:'Robot & sensors',launch:'Launch & timing'};
+  const IMPACT={block:['Stopped everything','p-block'],nav:['Breaks navigation','p-nav'],clean:['Cleanup','p-clean']};
+  const BUGS=[
+    {n:1,cat:'build',impact:'block',title:'The workspace didn’t build',file:'testbed_description/CMakeLists.txt',
+     problem:'colcon build fails with a CMake parse error ("Expected “(”, got newline"), and testbed_gazebo is skipped because it depends on this package.',
+     cause:'The last line was ament_package with no parentheses, which isn’t a valid CMake call.',
+     fix:'ament_package()',verified:'The build log showed the parse error; after the fix all packages build.'},
+    {n:2,cat:'map',impact:'nav',title:'Map image path pointed to a missing file',file:'testbed_bringup/maps/testbed_world.yaml',
+     problem:'The map server can’t load the map.',cause:'image: wrong_path_testbed_world.pgm names a file that doesn’t exist.',
+     fix:'image: testbed_world.pgm (relative to the YAML, so it works from any install location).',verified:'maps/ contains only testbed_world.pgm; /map now publishes 405 × 400 cells.'},
+    {n:3,cat:'build',impact:'nav',title:'The maps folder was never installed',file:'testbed_bringup/CMakeLists.txt',
+     problem:'The map can’t be found by package path at runtime.',cause:'install(DIRECTORY) copied only launch/.',
+     fix:'Added maps to install().',verified:'maps/ now exists under install/testbed_bringup/share.'},
+    {n:4,cat:'build',impact:'clean',title:'The models folder was never installed',file:'testbed_gazebo/CMakeLists.txt',
+     problem:'GAZEBO_MODEL_PATH points at a models folder that doesn’t exist after install.',cause:'models was missing from install().',
+     fix:'Added models to install().',verified:'models/ now exists under install/testbed_gazebo/share.'},
+    {n:5,cat:'launch',impact:'nav',title:'robot_state_publisher ran on wall-clock time',file:'testbed_description/launch/robot_description.launch.py',
+     problem:'Its TF timestamps clash with Gazebo’s simulation time, causing extrapolation errors and dropped transforms in AMCL and Nav2.',
+     cause:'Started without use_sim_time.',fix:'"use_sim_time": True',verified:'tf2_echo odom lidar_link_1 resolves on sim time with no extrapolation errors.'},
+    {n:6,cat:'robot',impact:'nav',title:'The lidar could only see 1.5 m',file:'testbed_description/urdf/testbed.gazebo',
+     problem:'In a 20 m × 20 m building most scans hit nothing, leaving AMCL no walls to match.',cause:'<max>1.5</max> in the ray sensor.',
+     fix:'<max>12.0</max>',verified:'From the spawn point the nearest wall is 3.39 m away.',
+     metric:{title:'Lidar rays hitting a wall from the spawn point',unit:'of 300',max:300,before:0,after:298,bl:'0',al:'298'}},
+    {n:7,cat:'robot',impact:'clean',title:'A ROS 1 plugin was still loaded',file:'testbed_description/urdf/testbed.gazebo',
+     problem:'Gazebo logs an error trying to load a plugin that doesn’t exist in ROS 2.',cause:'libgazebo_ros_control.so is ROS 1 only; motion already comes from the diff-drive plugin.',
+     fix:'Removed the plugin block.',verified:'The library is not in /opt/ros/humble/lib.'},
+    {n:8,cat:'robot',impact:'clean',title:'Malformed XML in the IMU plugin',file:'testbed_description/urdf/testbed.gazebo',
+     problem:'A stray “>” leaves text inside the plugin element.',cause:'Typo after </initial_orientation_as_reference>.',
+     fix:'Removed the extra “>”.',verified:'xacro and check_urdf parse cleanly.'},
+    {n:9,cat:'build',impact:'clean',title:'Runtime dependencies weren’t declared',file:'package.xml (all three packages)',
+     problem:'rosdep on a fresh machine wouldn’t install gazebo_ros, xacro, robot_state_publisher and others.',cause:'No exec_depend entries; rclpy used without being declared.',
+     fix:'Added exec_depend entries to each package.',verified:'rosdep check: all system dependencies satisfied.'},
+    {n:10,cat:'build',impact:'clean',title:'Editor config pointed at another machine',file:'.vscode/settings.json',
+     problem:'The CMake extension used /home/eric-ros1/… as its source directory.',cause:'Hard-coded path.',fix:'Removed it.',verified:'Code review.'},
+    {n:11,cat:'robot',impact:'nav',title:'Turns came out 9% short',file:'testbed_description/urdf/testbed.gazebo',
+     problem:'A commanded 86° turn produced only 78°.',cause:'wheel_separation was 0.35 m; the wheel meshes are 0.376 m apart.',
+     fix:'wheel_separation = 0.376',verified:'Drive test with 0.5 rad/s for 3 s.',
+     metric:{title:'Degrees turned for an 86° command',unit:'°',max:86,before:78,after:84,bl:'78°',al:'84°'}},
+    {n:12,cat:'robot',impact:'nav',title:'base_footprint was off the rotation centre',file:'testbed_description/urdf/testbed.xacro',
+     problem:'Every spin in place moved base_footprint 8 cm sideways, which AMCL treats as heavy noise: its error reached 0.51 m after one full spin.',
+     cause:'base_footprint sat at the mesh origin, 6 cm from the wheel-axle midpoint. Measured from the midpoint, the body is symmetric, so that is where it belongs.',
+     fix:'fixed_base_joint origin 0 0 0 → 0.0505 0.0378 0',verified:'A spin now moves base_footprint 0.00 m; the particle cloud tightens to 0.19 m.',
+     metric:{title:'Worst AMCL error over the same route of spins and straights',unit:'m',max:0.51,before:0.51,after:0.068,bl:'0.51 m',al:'0.07 m'}},
+    {n:13,cat:'map',impact:'nav',title:'Reset World moved every brick wall 1.25 m',file:'testbed_gazebo/worlds/testbed_playground.world',
+     problem:'After Gazebo’s Reset World the walls sat 1.25 m off the map. AMCL followed the walls: a goal “succeeded” 1.23 m from its target and the next timed out after 18 recoveries.',
+     cause:'The test_room model had two poses: the definition (−0.078, −1.231) and the saved state (−0.186, 0.023) the map was built from. A reset restores the definition.',
+     fix:'Set the definition pose to the saved state pose.',verified:'gz model -m test_room reports the same pose on a fresh launch and after a reset; all walls agree to 0.00 mm.',
+     metric:{title:'Wall offset from the map after Reset World',unit:'m',max:1.25,before:1.25,after:0,bl:'1.25 m',al:'0.00 m'}}
+  ];
+  const LOG=[
+    ['B11','Final checks','Starter packages fail 18–19 of 25 lint checks','Style findings in the original launch files; no effect on behaviour. Left as is. testbed_navigation passes all 15 of its checks.',false],
+    ['B10','Navigation','From the one-command launch, the navigation servers ran on built-in defaults','Launch arguments aren’t scoped per included file, so localization’s params_file replaced navigation’s. Each include is now wrapped in a scoped GroupAction.',false],
+    ['B9','Navigation','One goal needed 8 recoveries; the planner kept failing','NavFn’s A* mode dead-ends on long routes around walls. Switching to Dijkstra took recoveries on the tour from 10 to 0.',false],
+    ['B8','Testing','The test script cancelled its first goal instantly','It read sim time before the first /clock message. It now waits for the clock.',false],
+    ['B7','Testing','AMCL drifted up to 1.37 m on a straight run','Not AMCL: an earlier reset had moved the walls (bug 13). Found by scoring the scan against the map at both poses and reading the walls’ live pose from Gazebo.',false],
+    ['B6','Testing','The first accuracy test reported 13–38 cm that never settled','/amcl_pose is published only on filter updates, so the test compared a stale estimate. The error is now read from map → odom; the real remaining error was bug 12.',false],
+    ['B5','Testing','A 6–8 m localization error that never recovered','AMCL tracks from its initial guess. Tests now reset the robot and send a matching initial pose.',false],
+    ['B4','Map loading','New launch files “not found”; build pointed at an old folder','--symlink-install needs a rebuild for new files; the stale build cache was deleted.',false],
+    ['B3','Map loading','lifecycle_manager exits with code 127 (libdiagnostic_updater.so missing)','Nav2 1.1.20 needs diagnostic_updater 4.0.7; this machine has 4.0.6. Verified that 4.0.7 fixes it; the system upgrade is pending on this machine.',true],
+    ['B2','Setup','A 7-line edit became a 316-line diff','The file uses CRLF line endings; they were restored.',false],
+    ['B1','Setup','The navigation package was created outside the git repo','Moved into the repo so it is part of the pull request.',false]
+  ];
+
+  const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
+  const state={cat:'all',impact:'all',q:''};
+  try{const s=JSON.parse(localStorage.getItem('tb-report-filters')||'null');if(s){state.cat=s.cat||'all';state.impact=s.impact||'all';}}catch(e){}
+
+  function chipRow(host,items,key){
+    host.textContent='';
+    items.forEach(([val,label,count])=>{
+      const b=el('button','chip');b.type='button';b.setAttribute('aria-pressed',String(state[key]===val));
+      b.append(label);if(count!=null){b.append(el('span','n',String(count)));}
+      b.addEventListener('click',()=>{state[key]=val;try{localStorage.setItem('tb-report-filters',JSON.stringify({cat:state.cat,impact:state.impact}));}catch(e){}render();});
+      host.append(b);
+    });
+  }
+  function metricBlock(m){
+    const box=el('div','metric');box.append(el('span','mt',m.title));
+    [['before',m.before,m.bl],['after',m.after,m.al]].forEach(([k,v,l])=>{
+      const row=el('div','mrow');row.append(el('span','lbl',k==='before'?'Before':'After'));
+      const tr=el('div','track');const f=el('div','fill '+k);f.style.width=Math.max(1,(v/m.max)*100)+'%';tr.append(f);row.append(tr);
+      row.append(el('span','val',l));box.append(row);
+    });
+    return box;
+  }
+  function bugCard(b){
+    const d=el('details','bug');d.dataset.impact=b.impact;d.id='bug-'+b.n;
+    const s=el('summary');
+    s.append(el('span','bnum',String(b.n)));
+    const t=el('span','btitle');t.append(el('strong',null,b.title));t.append(el('span','file',b.file));s.append(t);
+    const side=el('span','bside');const p=el('span','pill '+IMPACT[b.impact][1],IMPACT[b.impact][0]);side.append(p);
+    const c=el('span','caret');c.append(el('span','o','Details +'));c.append(el('span','c','Hide −'));side.append(c);s.append(side);
+    d.append(s);
+    const body=el('div','bbody');
+    [['Problem',b.problem,true],['Root cause',b.cause],['Fix',b.fix],['How it was verified',b.verified,true]].forEach(([k,v,wide])=>{
+      const f=el('div','field'+(wide?' wide':''));f.append(el('span','k',k));f.append(el('p',null,v));body.append(f);
+    });
+    if(b.metric)body.append(metricBlock(b.metric));
+    d.append(body);return d;
+  }
+  function render(){
+    const q=state.q.trim().toLowerCase();
+    const byCat=BUGS.filter(b=>state.impact==='all'||b.impact===state.impact);
+    chipRow(document.getElementById('cat-chips'),[['all','All areas',byCat.length]].concat(Object.entries(CATS).map(([k,v])=>[k,v,byCat.filter(b=>b.cat===k).length])),'cat');
+    const byImp=BUGS.filter(b=>state.cat==='all'||b.cat===state.cat);
+    chipRow(document.getElementById('impact-chips'),[['all','Any impact',byImp.length]].concat(Object.entries(IMPACT).map(([k,v])=>[k,v[0],byImp.filter(b=>b.impact===k).length])),'impact');
+    const list=document.getElementById('bug-list');list.textContent='';
+    const shown=BUGS.filter(b=>(state.cat==='all'||b.cat===state.cat)&&(state.impact==='all'||b.impact===state.impact)&&
+      (!q||[b.title,b.file,b.problem,b.cause,b.fix,b.verified,String(b.n)].join(' ').toLowerCase().includes(q)));
+    shown.forEach(b=>list.append(bugCard(b)));
+    if(!shown.length){list.append(el('div','empty','No bugs match these filters. Clear the search or pick "All areas".'));}
+    document.getElementById('bug-count').textContent='Showing '+shown.length+' of '+BUGS.length+' bugs';
+    document.getElementById('toggle-all').textContent='Expand all';
+  }
+  document.getElementById('bug-search').addEventListener('input',e=>{state.q=e.target.value;render();});
+  document.getElementById('toggle-all').addEventListener('click',e=>{
+    const ds=[...document.querySelectorAll('details.bug')];const open=!ds.every(d=>d.open);
+    ds.forEach(d=>d.open=open);e.target.textContent=open?'Collapse all':'Expand all';
+  });
+  const log=document.getElementById('dev-log');
+  LOG.forEach(([id,phase,prob,how,wait])=>{
+    const it=el('div','logitem'+(wait?' wait':''));const h=el('div','loghead');
+    h.append(el('span','id',id));h.append(el('strong',null,prob));
+    h.append(el('span','pill '+(wait?'p-nav':'p-ok'),wait?'Waiting on system upgrade':phase));
+    it.append(h);it.append(el('p','how',how));log.append(it);
+  });
+  document.querySelectorAll('.copy').forEach(btn=>btn.addEventListener('click',()=>{
+    const box=document.getElementById(btn.dataset.copy);const txt=box.firstChild.textContent.trim();
+    const done=()=>{btn.textContent='Copied';setTimeout(()=>btn.textContent='Copy',1500);};
+    if(navigator.clipboard){navigator.clipboard.writeText(txt).then(done,()=>{const r=document.createRange();r.selectNodeContents(box.firstChild);const s=getSelection();s.removeAllRanges();s.addRange(r);});}
+  }));
+  // highlight the section in view
+  const links=[...document.querySelectorAll('.bar a')];
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id));}}),{rootMargin:'-40% 0px -55% 0px'});
+  ['overview','bugs','devlog','system','results','run'].forEach(id=>{const s=document.getElementById(id);if(s)io.observe(s);});
+  // deep link to a bug, e.g. #bug-13
+  if(/^#bug-\d+$/.test(location.hash)){state.cat='all';state.impact='all';}
+  render();
+  if(/^#bug-\d+$/.test(location.hash)){const d=document.querySelector(location.hash);if(d){d.open=true;d.scrollIntoView();}}
+})();
+</script>
+</body>
+</html>
